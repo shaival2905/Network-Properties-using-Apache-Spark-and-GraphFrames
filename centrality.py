@@ -8,10 +8,9 @@ sc=SparkContext("local", "degree.py")
 sqlContext = SQLContext(sc)
 
 def closeness(g):
-	
+
 	# Get list of vertices. We'll generate all the shortest paths at
 	# once using this list.
-	# YOUR CODE HERE
     vertices = g.vertices.rdd.map(lambda x: x.id).collect()
 
 	# first get all the path lengths.
@@ -24,7 +23,7 @@ def closeness(g):
     def getInvDf(path_length):
         return (path_length.id,float(1/sum(path_length.distances.values())))
     closeness_df = path_lengths.rdd.map(lambda path_length: getInvDf(path_length))
-	
+
     return sqlContext.createDataFrame(closeness_df, ['id','closeness'])
 
 print("Reading in graph for problem 2.")
@@ -38,7 +37,7 @@ graph = sc.parallelize([('A','B'),('A','C'),('A','D'),
 	('H','C'),('H','F'),('H','I'),
 	('I','H'),('I','J'),
 	('J','I')])
-	
+
 e = sqlContext.createDataFrame(graph,['src','dst'])
 v = e.selectExpr('src as id').unionAll(e.selectExpr('dst as id')).distinct()
 print("Generating GraphFrame.")

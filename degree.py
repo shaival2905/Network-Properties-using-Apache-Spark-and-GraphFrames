@@ -12,29 +12,24 @@ sqlContext = SQLContext(sc)
 ''' return the simple closure of the graph as a graphframe.'''
 def simple(g):
 	# Extract edges and make a data frame of "flipped" edges
-	# YOUR CODE HERE
-    
+
     flipped_edges = g.edges.selectExpr("src as dst","dst as src").select("src","dst")
-    
-    
 	# Combine old and new edges. Distinctify to eliminate multi-edges
 	# Filter to eliminate self-loops.
 	# A multigraph with loops will be closured to a simple graph
 	# If we try to undirect an undirected graph, no harm done
-	# YOUR CODE HERE
-    
+
     final_edges = g.edges.unionAll(flipped_edges).distinct()
     final_edges = final_edges.where("src != dst")
-    
+
     return GraphFrame(g.vertices, final_edges)
-    
+
 ''' Return a data frame of the degree distribution of each edge in
 	the provided graphframe '''
 def degreedist(g):
 	# Generate a DF with degree,count
-    # YOUR CODE HERE
-    
-    return g.inDegrees.groupBy("inDegree").count() 
+
+    return g.inDegrees.groupBy("inDegree").count()
 
 ''' Read in an edgelist file with lines of the format id1<delim>id2
 	and return a corresponding graphframe. If "large" we assume
@@ -52,24 +47,22 @@ def readFile(filename, large, sqlContext=sqlContext):
 
 	# Extract pairs from input file and convert to data frame matching
 	# schema for graphframe edges.
-	# YOUR CODE HERE
-    def extractPairs(inp):
+	def extractPairs(inp):
         inp_arr = inp.split(delim)
         return (inp_arr[0], inp_arr[1])
-    
+
     edge_pairs = lines.map(lambda inp: extractPairs(inp)).distinct()
     edges = sqlContext.createDataFrame(edge_pairs,['src','dst'])
-    
+
 	# Extract all endpoints from input file (hence flatmap) and create
 	# data frame containing all those node names in schema matching
 	# graphframe vertices
-	# YOUR CODE HERE
-    def extractEndpoints(inp):
+	def extractEndpoints(inp):
         inp_arr = inp.split(delim)
         return (inp_arr,)
     endpoints = lines.flatMap(lambda inp: extractEndpoints(inp)).distinct()
     vertices = sqlContext.createDataFrame(endpoints,['id'])
-    
+
 	# Create graphframe g from the vertices and edges.
     g = GraphFrame(vertices, edges)
     return g

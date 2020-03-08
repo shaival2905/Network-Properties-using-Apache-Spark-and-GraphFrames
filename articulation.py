@@ -13,20 +13,17 @@ sc.setCheckpointDir('.')
 
 def articulations(g, usegraphframe=False):
 	# Get the starting count of connected components
-	# YOUR CODE HERE
-    connected_components = g.connectedComponents()
+	connected_components = g.connectedComponents()
     initial_connected_components = connected_components.groupBy("component").count().count()
-	# Default version sparkifies the connected components process 
+	# Default version sparkifies the connected components process
 	# and serializes node iteration.
     if usegraphframe:
 		# Get vertex list for serial iteration
-		# YOUR CODE HERE
-        vertex_list = g.vertices.rdd.map(lambda x: x.id).collect()
+		vertex_list = g.vertices.rdd.map(lambda x: x.id).collect()
 
 		# For each vertex, generate a new graphframe missing that vertex
 		# and calculate connected component count. Then append count to
 		# the output
-        # YOUR CODE HERE
         articulation_list = []
         for vertex in vertex_list:
             next_vertices = g.vertices.filter(functions.col("id") != functions.lit(vertex))
@@ -37,12 +34,11 @@ def articulations(g, usegraphframe=False):
                 articulation_list.append((vertex, 1))
             else:
                 articulation_list.append((vertex, 0))
-            
-        return sqlContext.createDataFrame(articulation_list,['id','articulation'])		
-	# Non-default version sparkifies node iteration and uses networkx 
+
+        return sqlContext.createDataFrame(articulation_list,['id','articulation'])
+	# Non-default version sparkifies node iteration and uses networkx
 	# for connected components count.
     else:
-        # YOUR CODE HERE
         nx_graph = nx.Graph()
         def getVertexId(vertex):
             return vertex.id
@@ -50,7 +46,7 @@ def articulations(g, usegraphframe=False):
         def getEdgeTuple(edge):
             return (edge.src, edge.dst)
         nx_graph.add_edges_from(g.edges.rdd.map(lambda edge: getEdgeTuple(edge)).collect())
-		
+
         articulation_list = []
         node_list = list(nx_graph.nodes)
         for i in range(len(node_list)):
@@ -61,19 +57,19 @@ def articulations(g, usegraphframe=False):
                 articulation_list.append((node_list[i],1))
             else:
                 articulation_list.append((node_list[i],0))
-        
+
         return sqlContext.createDataFrame(articulation_list,['id','articulation'])
-		
+
 
 filename = sys.argv[1]
 lines = sc.textFile(filename)
 
 pairs = lines.map(lambda s: s.split(","))
 e = sqlContext.createDataFrame(pairs,['src','dst'])
-e = e.unionAll(e.selectExpr('src as dst','dst as src')).distinct() # Ensure undirectedness 	
+e = e.unionAll(e.selectExpr('src as dst','dst as src')).distinct() # Ensure undirectedness
 
 # Extract all endpoints from input file and make a single column frame.
-v = e.selectExpr('src as id').unionAll(e.selectExpr('dst as id')).distinct()	
+v = e.selectExpr('src as id').unionAll(e.selectExpr('dst as id')).distinct()
 
 # Create graphframe from the vertices and edges.
 g = GraphFrame(v,e)
